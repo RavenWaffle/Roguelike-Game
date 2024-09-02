@@ -15,9 +15,16 @@ namespace Controls
 
         //save memory
         //Vector3 hit_pos;
-        Vector2 mouseDirectionV2;
-        Vector3 mouseDirectionV3;
+        Vector3 globalMovement;
         Vector2 localMovement;
+
+        Vector3 onScreenPos;
+        Vector3 mouseDirectionV3;
+        Vector2 mouseDirectionV2;
+
+        Vector2 moveVector2D;
+        Vector2 forwardVector2D;
+        Vector2 rightVector2D;
         float InputX;
         float InputY;
 
@@ -36,25 +43,14 @@ namespace Controls
 
         private void PlayerLook()
         {
-            //will need to revise, currently expensive.
-            /*
-            Ray ray = m_Camera.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit raycasthit))
-            {
-                hit_pos = raycasthit.point;
-                hit_pos = new Vector3(hit_pos.x, transform.position.y, hit_pos.z);
-                transform.LookAt(hit_pos);
-            }
-            */
-
-            mouseDirectionV2 = (new Vector2(Input.mousePosition.x, Input.mousePosition.y) - new Vector2(Screen.width / 2f, Screen.height / 2f)).normalized;
+            onScreenPos = m_Camera.WorldToScreenPoint(transform.position);
+            mouseDirectionV2 = (new Vector2(Input.mousePosition.x, Input.mousePosition.y) - new Vector2(onScreenPos.x, onScreenPos.y)).normalized;
             mouseDirectionV3 = new Vector3(mouseDirectionV2.x, 0, mouseDirectionV2.y);
 
             // Rotate smoothly towards the target direction
             float step = _rotSpeed * Time.deltaTime;
             Vector3 newDirection = Vector3.RotateTowards(transform.forward, mouseDirectionV3, step, 0.0f);
             transform.rotation = Quaternion.LookRotation(newDirection);
-
             /*
             float deltaAngle = Vector3.SignedAngle(transform.forward, transform.position + mouseDirectionV3, Vector3.up);
             if(Mathf.Abs(deltaAngle) <= 5)
@@ -73,17 +69,21 @@ namespace Controls
         }
         private void AnimationUpdate()
         {
-            Vector2 moveVector2D = new Vector2(InputX, InputY).normalized;
-            Vector2 forwardVector2D = new Vector2(transform.forward.x, transform.forward.z).normalized;
-            Debug.Log("movement = " + moveVector2D + ", forward =" + forwardVector2D);
-            localMovement = new Vector2(moveVector2D.x * forwardVector2D.x, forwardVector2D.x * moveVector2D.x + forwardVector2D.y * moveVector2D.y);
+            moveVector2D = new Vector2(InputX, InputY).normalized;
+
+            forwardVector2D = new Vector2(transform.forward.x, transform.forward.z).normalized;
+            rightVector2D = new Vector2(forwardVector2D.y, -forwardVector2D.x);
+
+            localMovement = new Vector2(Vector2.Dot(moveVector2D, rightVector2D), Vector2.Dot(moveVector2D, forwardVector2D));
+
             m_Animator.SetFloat("xDir", localMovement.x);
             m_Animator.SetFloat("yDir", localMovement.y);
         }
+
         private void PlayerMove()
         {
-            Vector3 movementVector = (InputY * Vector3.forward + InputX * m_Camera.transform.right).normalized * _speed;
-            m_RigidBody.velocity = new Vector3(movementVector.x, m_RigidBody.velocity.y, movementVector.z);
+            globalMovement = (InputY * Vector3.forward + InputX * m_Camera.transform.right).normalized * _speed;
+            m_RigidBody.velocity = new Vector3(globalMovement.x, m_RigidBody.velocity.y, globalMovement.z);
         }
 
         private void OnDrawGizmos()
@@ -92,8 +92,6 @@ namespace Controls
             Gizmos.DrawLine(transform.position, transform.position + mouseDirectionV3 * 3);
             Gizmos.color = Color.blue;
             Gizmos.DrawLine(transform.position, transform.position + transform.forward * 3);
-            Gizmos.color = Color.red;
-            Gizmos.DrawLine(transform.position, transform.position + new Vector3(localMovement.x * 3, 0, localMovement.y * 3));
         }
     }
 }
