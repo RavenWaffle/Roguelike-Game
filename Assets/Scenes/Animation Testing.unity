@@ -915,8 +915,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_RigidBody: {fileID: 2129386271}
-  _speed: 2
-  _rotSpeed: 5
+  m_speed: 5
+  m_rotSpeed: 5
 --- !u!54 &2129386271
 Rigidbody:
   m_ObjectHideFlags: 0
